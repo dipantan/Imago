@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ll0"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="25dp"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/authorIcon"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="25dp"
+            android:layout_marginEnd="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="@drawable/circle" />
+
+        <TextView
+            android:id="@+id/author"
+            android:layout_width="150dp"
+            android:layout_height="15dp"
+            android:layout_marginTop="8dp"
+            android:layout_toEndOf="@id/authorIcon"
+            android:background="@color/shimmer_placeholder"
+            android:fontFamily="sans-serif-condensed-medium"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@id/author" />
+
+        <TextView
+            android:id="@+id/date"
+            android:layout_width="100dp"
+            android:layout_height="10dp"
+            android:layout_below="@id/author"
+            android:layout_marginTop="8dp"
+            android:layout_toEndOf="@id/authorIcon"
+            android:background="@color/shimmer_placeholder"
+            android:textSize="14sp" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:layout_marginStart="25dp"
+        android:layout_marginEnd="25dp"
+        android:id="@id/expandable_text"
+        android:layout_width="fill_parent"
+        android:layout_height="200dp"
+        android:background="@color/shimmer_placeholder" />
+
+    <ToggleButton
+        android:id="@+id/button_favorite"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="25dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/button_favorite"
+        android:checked="false"
+        android:textOff=""
+        android:textOn="" />
+
+    <TextView
+        android:id="@+id/likes"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="25dp"
+        android:layout_marginTop="5dp"
+        android:background="@color/shimmer_placeholder" />
+
+</LinearLayout>

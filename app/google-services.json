@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "400454570527",
+    "firebase_url": "https://angular-yeti-257914-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "angular-yeti-257914",
+    "storage_bucket": "angular-yeti-257914.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400454570527:android:2b552195c242971b10bb2a",
+        "android_client_info": {
+          "package_name": "me.dipantan.imago"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "400454570527-6jqatrk7hj6hdghcjjsro4ldq2epgfku.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "me.dipantan.imago",
+            "certificate_hash": "446640548375640ffc6bd9411f2c5e8f863586d8"
+          }
+        },
+        {
+          "client_id": "400454570527-1ufrlhapl9lp3j6oplpln92lne32o7rr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDq8WXemjLuo6aNy_HrwEbNvtNJK10PSV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "400454570527-1ufrlhapl9lp3j6oplpln92lne32o7rr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

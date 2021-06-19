@@ -12,31 +12,28 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-
 import com.bumptech.glide.Glide;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-
-import java.util.Objects;
-
 import me.dipantan.imago.Models.PostModel;
 import me.dipantan.imago.R;
+
+import java.util.Objects;
 
 public class ImageChooser extends Fragment {
     private DatabaseReference reference;
     private static final String TAG = "TAG";
     private ProgressDialog dialog;
     private OnFragmentInteractionListener mListener;
+    private FirebaseUser user;
 
     public ImageChooser() {
         // Required empty public constructor
@@ -67,6 +64,7 @@ public class ImageChooser extends Fragment {
         final String date = array[2];
         final String key = array[3];
         final String postImage = array[4];
+        user = FirebaseAuth.getInstance().getCurrentUser();
         Glide.with(this).load(postImage).into(imageView);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -80,7 +78,7 @@ public class ImageChooser extends Fragment {
                             Task<Uri> result = taskSnapshot.getStorage().getDownloadUrl();
                             result.addOnSuccessListener(uri -> {
                                 String path = uri.toString();
-                                PostModel model = new PostModel(post.toString(), author, date, authorIcon, key, path);
+                                PostModel model = new PostModel(post.toString(), author, date, authorIcon, key, path, user.getEmail());
                                 reference.child(key).setValue(model);
                                 dialog.dismiss();
                                 Intent intent = new Intent(getActivity(), FeedActivity.class);
@@ -133,7 +131,7 @@ public class ImageChooser extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy: ");
-       // getFragmentManager().beginTransaction().remove((Fragment) ImageChooser).commitAllowingStateLoss();
+        // getFragmentManager().beginTransaction().remove((Fragment) ImageChooser).commitAllowingStateLoss();
         Objects.requireNonNull(getActivity()).getSupportFragmentManager().beginTransaction().remove(this).commit();
     }
 }

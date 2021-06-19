@@ -10,20 +10,23 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import com.androidnetworking.AndroidNetworking;
+import com.androidnetworking.common.Priority;
+import com.androidnetworking.error.ANError;
+import com.androidnetworking.interfaces.StringRequestListener;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.github.dhaval2404.imagepicker.ImagePicker;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.*;
-import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import de.hdodenhof.circleimageview.CircleImageView;
 import me.dipantan.imago.Models.UserDetailsModel;
 import me.dipantan.imago.R;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
 import java.util.Objects;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -36,7 +39,7 @@ public class ProfileActivity extends AppCompatActivity {
     private StorageReference storageReference;
     private FirebaseAuth auth;
     private FirebaseUser user;
-    private String name, uid;
+    private String email, uid;
     private String[] mimeTypes;
     private Uri uri;
 
@@ -52,9 +55,24 @@ public class ProfileActivity extends AppCompatActivity {
         user = auth.getCurrentUser();
         circleImageView = findViewById(R.id.imageButton);
         String path = getApplicationInfo().dataDir + "/" + "files" + "/" + "profile.png";
-        name = user.getDisplayName();
+        email = user.getEmail();
         uid = user.getUid();
-        Log.d(TAG, path);
+        RequestOptions options = new RequestOptions()
+                .centerCrop()
+                .placeholder(R.drawable.progress_animation)
+                //.error(R.drawable.user_image)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .priority(com.bumptech.glide.Priority.HIGH)
+                .dontAnimate()
+                .dontTransform();
+//        CircularProgressDrawable circularProgressDrawable = new CircularProgressDrawable(this);
+//        circularProgressDrawable.setStrokeWidth(5f);
+//        circularProgressDrawable.setCenterRadius(30f);
+//        circularProgressDrawable.start();
+
+        AndroidNetworking.initialize(getApplicationContext());
+
+        // Log.d(TAG, path);
 //        Glide.with(this).load(path).into(circleImageView);
         try {
             reference1 = FirebaseDatabase.getInstance().getReference("users").child(uid);
@@ -65,6 +83,9 @@ public class ProfileActivity extends AppCompatActivity {
                     try {
                         Glide.with(ProfileActivity.this)
                                 .load(Objects.requireNonNull(model).getPhotoUrl())
+                                .apply(options)
+                                .apply(RequestOptions.skipMemoryCacheOf(true))
+                                .apply(RequestOptions.diskCacheStrategyOf(DiskCacheStrategy.NONE))
                                 .into(circleImageView);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -84,8 +105,9 @@ public class ProfileActivity extends AppCompatActivity {
         circleImageView.setOnClickListener((v) -> {
             ImagePicker.with(this)
                     .cropSquare()
-                    .compress(100)
-                    .maxResultSize(400, 400)
+                    .compress(20)
+
+                    .maxResultSize(80, 80)
                     .galleryMimeTypes(
                             mimeTypes = new String[]{
                                     "image/png",
@@ -93,52 +115,47 @@ public class ProfileActivity extends AppCompatActivity {
                                     "image/jpeg"
                             })
                     .start();
-//            Intent intent = new Intent(Intent.ACTION_PICK);
-//            intent.setType("image/*");
-//            startActivityForResult(intent, IMAGE_REQUEST);
         });
-        //   UserDetailsModel model = new UserDetailsModel();
-        //Log.d(TAG, "onCreate: "+model.getPhotoUrl());
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-//        Log.d(TAG, "onActivityResult: " + resultCode);
-//        Log.d(TAG, "onActivityResult: " + requestCode);
         if (resultCode == Activity.RESULT_OK) {
-            Log.d(TAG, "ok ");
             try {
                 if (data != null) {
                     uri = data.getData();
-//               upload image to firebase
-                    storageReference = FirebaseStorage.getInstance().getReference("images/profiles/" + uid + ".png");
-                    storageReference.putFile(uri).addOnSuccessListener(taskSnapshot -> {
-                        if (taskSnapshot.getMetadata() != null) {
-                            if (taskSnapshot.getMetadata().getReference() != null) {
-                                Task<Uri> result = taskSnapshot.getStorage().getDownloadUrl();
-                                result.addOnSuccessListener(uri -> {
-                                    String path = uri.toString();
-                                    try {
-                                        Log.d(TAG, "onActivityResult: " + path);
-                                        reference1 = FirebaseDatabase.getInstance().getReference("users").child(uid);
-                                        reference1.child("photoUrl").setValue(path);
-                                        reference2 = (DatabaseReference) FirebaseDatabase.getInstance().getReference("posts").orderByChild("author").equalTo(name);
-                                        Map<String,String> map = new HashMap<>();
-                                        map.put("authorIconUrl",path);
-//                                        reference2.updateChildren(map);
-                                        Toast.makeText(this, "Profile updated", Toast.LENGTH_SHORT).show();
-//                                        reference = (DatabaseReference) FirebaseDatabase.getInstance().getReference("posts").orderByChild("author").equalTo(name);
-//                                        reference.child("authorIconUrl").setValue(path);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
+                    assert uri != null;
+                    File file = new File(Objects.requireNonNull(uri.getPath()));
+                    AndroidNetworking.upload("https://dipantan.me/upload/upload.php")
+                            .addMultipartFile("fileToUpload", file)
+                            .addMultipartParameter("name", user.getUid())
+                            .setTag("uploadTest")
+                            .setPriority(Priority.HIGH)
+                            .build()
+                            .setUploadProgressListener((bytesUploaded, totalBytes) -> {
+//                                Log.d(TAG, "bytesUploaded: " + bytesUploaded);
+//                                Log.d(TAG, "totalBytes: " + totalBytes);
+                            })
+                            .getAsString(new StringRequestListener() {
+                                @Override
+                                public void onResponse(String response) {
+                                    Log.d(TAG, "onResponse: " + response);
+                                    reference1 = FirebaseDatabase.getInstance().getReference("users").child(uid);
+                                    reference1.child("photoUrl").setValue(response);
+                                    Toast.makeText(ProfileActivity.this, "Profile updated", Toast.LENGTH_SHORT).show();
+                                    finish();
+                                    overridePendingTransition(0, 0);
+                                    startActivity(getIntent());
+                                    overridePendingTransition(0, 0);
+                                }
 
-//                                    Log.d(TAG, "onActivityResult: " + path);
-                                });
-                            }
-                        }
-                    });
+                                @Override
+                                public void onError(ANError anError) {
+//                                    Log.d(TAG, "onError: " + anError);
+                                    Toast.makeText(ProfileActivity.this, anError.getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
 
                 }
             } catch (Exception e) {
@@ -160,4 +177,11 @@ public class ProfileActivity extends AppCompatActivity {
         onBackPressed();
         return true;
     }
+
+//    @Override
+//    public void onBackPressed() {
+//        super.onBackPressed();
+//        this.finish();
+//        startActivity(new Intent(this,FeedActivity.class));
+//    }
 }

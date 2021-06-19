@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Imago</string>
     <string name="web_client_id">400454570527-1ufrlhapl9lp3j6oplpln92lne32o7rr.apps.googleusercontent.com</string>
-
+    <string name="url">"https://dipantan.me/upload/profiles/"</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

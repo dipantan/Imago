@@ -10,14 +10,16 @@ public class PostModel {
     private String authorIconUrl;
     private String postKey;
     private String postImage;
+    private String email;
 
-    public PostModel(String postText, String author, String date, String authorIconUrl, String postKey, String postImage) {
+    public PostModel(String postText, String author, String date, String authorIconUrl, String postKey, String postImage, String email) {
         this.postText = postText;
         this.author = author;
         this.date = date;
         this.authorIconUrl = authorIconUrl;
         this.postKey = postKey;
         this.postImage = postImage;
+        this.email = email;
     }
 
     public PostModel() {
@@ -48,7 +50,7 @@ public class PostModel {
         return postImage;
     }
 
-    public void setAuthorIconUrl(String authorIconUrl) {
-        this.authorIconUrl = authorIconUrl;
+    public String getEmail() {
+        return email;
     }
 }

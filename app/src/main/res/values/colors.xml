@@ -6,4 +6,7 @@
     <color name="colorHeader">#F1EBEB</color>
     <color name="colorButton">#128DE7</color>
     <color name="shimmer_placeholder">#dddddd</color>
+    <color name="ucrop_color_toolbar"></color>
+    <color name="ucrop_color_statusbar"></color>
+    <color name="ucrop_color_widget_active"></color>
 </resources>

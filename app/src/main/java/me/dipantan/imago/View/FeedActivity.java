@@ -1,10 +1,8 @@
-﻿package me.dipantan.imago.View;
+package me.dipantan.imago.View;
 
 
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -17,9 +15,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.androidnetworking.AndroidNetworking;
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.cooltechworks.views.shimmer.ShimmerRecyclerView;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -28,8 +27,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.*;
@@ -40,7 +37,6 @@ import me.dipantan.imago.Models.PostModel;
 import me.dipantan.imago.Models.UserDetailsModel;
 import me.dipantan.imago.R;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -59,11 +55,16 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
     private ArrayList<PostModel> models;
     private EditText textView;
     private Button button;
-    private GoogleSignInAccount account;
+    GoogleSignInAccount account;
     private ImageButton imageButton;
     private Uri uri;
     private int IMAGE_REQUEST = 1;
     private String[] array;
+    private String authorIcons = null;
+    private int positions;
+    private String key;
+    private RequestOptions options;
+    private GoogleSignInResult result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,11 +77,19 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
         recyclerView = findViewById(R.id.recycler_view);
         textView = findViewById(R.id.txt_post);
         button = findViewById(R.id.btn_post);
-        // mDatabase = FirebaseDatabase.getInstance().getReference().child("likes");
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         models = new ArrayList<>();
+        AndroidNetworking.initialize(getApplicationContext());
         user = FirebaseAuth.getInstance().getCurrentUser();
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
+        options = new RequestOptions()
+                .centerCrop()
+                .placeholder(R.drawable.progress_animation)
+                //.error(R.drawable.user_image)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .priority(com.bumptech.glide.Priority.HIGH)
+                .dontAnimate()
+                .dontTransform();
+        //mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .build();
@@ -92,96 +101,60 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
         //_____
         OptionalPendingResult<GoogleSignInResult> opr = Auth.GoogleSignInApi.silentSignIn(googleApiClient);
         if (opr.isDone()) {
-            GoogleSignInResult result = opr.get();
+            result = opr.get();
             handleSignInResult(result);
         } else {
-            opr.setResultCallback(new ResultCallback<GoogleSignInResult>() {
-                @Override
-                public void onResult(@NonNull GoogleSignInResult googleSignInResult) {
-                    handleSignInResult(googleSignInResult);
-                }
-            });
+            opr.setResultCallback(this::handleSignInResult);
         }
 
-        imageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_PICK);
-                intent.setType("image/*");
-                startActivityForResult(intent, IMAGE_REQUEST);
-//                final Uri filePath = uri;
-//                if (filePath != null) {
-//                    StorageReference reference = FirebaseStorage.getInstance().getReference("images/profiles/" + user.getUid() + ".jpg");
-//                    reference.putFile(filePath).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-//                        @Override
-//                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-//                            Log.d(TAG, "onSuccess: uploaded");
-//                        }
-//                    });
-//                }
-            }
+        imageButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            startActivityForResult(intent, IMAGE_REQUEST);
         });
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                final String[] authorIcon = new String[1];
-                String post = textView.getText().toString();
-                if (post.equals("")) {
-                    Toast.makeText(FeedActivity.this, "Please write something and try again", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Date date = Calendar.getInstance().getTime();
-                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault());
-                String strDate = dateFormat.format(date);
-                // Log.d(TAG, "onClick: " + strDate);
-                String author = user.getDisplayName();
-                // mDatabase2 = FirebaseDatabase.getInstance().getReference("users").child(user.getUid());
+        button.setOnClickListener(v -> {
+            String post = textView.getText().toString();
+            if (post.equals("")) {
+                Toast.makeText(FeedActivity.this, "Please write something and try again", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Date date = Calendar.getInstance().getTime();
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault());
+            String strDate = dateFormat.format(date);
+            String author = user.getDisplayName();
 
-                mDatabase.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        UserDetailsModel model = snapshot.getValue(UserDetailsModel.class);
-                        if (model != null) {
-                            authorIcon[0] = model.getPhotoUrl();
-                            PostModel postModel = new PostModel();
-                            postModel.setAuthorIconUrl(authorIcon[0]);
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
-                    }
-                });
-                mDatabase = FirebaseDatabase.getInstance().getReference().child("posts");
-                String key = mDatabase.push().getKey();
-                String postImage = "";
-//                try {
-//                    Log.d(TAG, authorIcon);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-
-                PostModel models = new PostModel(post, author, strDate, authorIcon[0], key, postImage);
-                mDatabase.keepSynced(true);
-                assert key != null;
-                mDatabase.child(key).setValue(models, new DatabaseReference.CompletionListener() {
-                    @Override
-                    public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+            mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
+            mDatabase.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    UserDetailsModel model = snapshot.getValue(UserDetailsModel.class);
+                    authorIcons = model != null ? model.getPhotoUrl() : null;
+                    mDatabase = FirebaseDatabase.getInstance().getReference().child("posts");
+                    key = mDatabase.push().getKey();
+                    String postImage = "";
+                    Log.d(TAG, "authorIcons: " + authorIcons);
+                    PostModel models = new PostModel(post, author, strDate, authorIcons, key, postImage, user.getEmail());
+                    mDatabase.child(key).setValue(models, (error, ref) -> {
                         Toast.makeText(FeedActivity.this, "Posted", Toast.LENGTH_SHORT).show();
                         //dismiss keyboard
                         hideSoftKeyBoard();
                         textView.getText().clear();
-                    }
-                });
+                    });
+                }
 
-            }
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
+
+
         });
         loadPost();
         adapter = new PostAdapter(models, FeedActivity.this, new OnPostClick() {
             @Override
             public void OnClick(View v, int position) {
-                Log.d(TAG, "OnClick: " + position);
+                positions = position;
             }
 
             @Override
@@ -203,20 +176,16 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
             public void onClick(View view) {
                 FirebaseAuth.getInstance().signOut();
                 Auth.GoogleSignInApi.signOut(googleApiClient).setResultCallback(
-                        new ResultCallback<Status>() {
-                            @Override
-                            public void onResult(@NonNull Status status) {
-                                if (status.isSuccess()) {
-                                    gotoMainActivity();
-                                } else {
-                                    Toast.makeText(getApplicationContext(), "Session not close", Toast.LENGTH_LONG).show();
-                                }
+                        status -> {
+                            if (status.isSuccess()) {
+                                gotoMainActivity();
+                            } else {
+                                Toast.makeText(getApplicationContext(), "Session not close", Toast.LENGTH_LONG).show();
                             }
                         });
             }
         });
         profileImage.setOnClickListener((v) -> {
-            Log.d(TAG, "profileImage ");
             startActivity(new Intent(this, ProfileActivity.class));
         });
     }
@@ -229,17 +198,16 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
             uri = data.getData();//image path
             try {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);//picasso or glide cam be used here instead
-//                Fragment fragment = ImageChooser.newInstance("","");
 
-
+                mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
                 mDatabase.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         UserDetailsModel model = snapshot.getValue(UserDetailsModel.class);
-                        PostModel postModel = new PostModel();
-                        if (model != null) {
-                            postModel.setAuthorIconUrl(model.getPhotoUrl());
-                        }
+                        // PostModel postModel = new PostModel();
+//                        if (model != null) {
+//                            postModel.setAuthorIconUrl(model.getPhotoUrl());
+//                        }
                         Bundle bundle = new Bundle();
                         String author = user.getDisplayName();
                         String authorIcon = null;
@@ -247,7 +215,7 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
                             authorIcon = String.valueOf(model.getPhotoUrl());
                         }
                         Date date = Calendar.getInstance().getTime();
-                        DateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss", Locale.getDefault());
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault());
                         String strDate = dateFormat.format(date);
                         String key = mDatabase.push().getKey();
                         String postImage = uri.toString();
@@ -287,20 +255,15 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     models.clear();
-                    Log.d(TAG, "onDataChange: cleared");
                     adapter.notifyDataSetChanged();
                 }
-                try {
-                    for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                        PostModel model = dataSnapshot.getValue(PostModel.class);
-                        models.add(model);
-                        recyclerView.hideShimmerAdapter();
-                        Collections.reverse(models);
-                    }
-                    adapter.notifyDataSetChanged();
-                } catch (Exception e) {
-                    Log.d(TAG, "onDataChange: " + e.getMessage());
-                    Toast.makeText(FeedActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                    PostModel model = dataSnapshot.getValue(PostModel.class);
+                    models.add(model);
+                    recyclerView.hideShimmerAdapter();
+                    Collections.reverse(models);
+                    //adapter.notifyItemChanged(positions);
+                    //adapter.notifyDataSetChanged();
                 }
 
             }
@@ -318,42 +281,24 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
             account = result.getSignInAccount();
             assert account != null;
             mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
-
-
             mDatabase.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
 
                     UserDetailsModel userDetailsModel1 = snapshot.getValue(UserDetailsModel.class);
-                    assert userDetailsModel1 != null;
-                    if (userDetailsModel1.getPhotoUrl().isEmpty()) {
+                    //  assert userDetailsModel1 != null;
+                    if (userDetailsModel1 == null) {
                         UserDetailsModel userDetailsModel = new UserDetailsModel(account.getDisplayName(), account.getEmail(), Objects.requireNonNull(account.getPhotoUrl()).toString());
                         mDatabase.setValue(userDetailsModel);
                     }
                     adapter.notifyDataSetChanged();
                     Glide
-                            .with(FeedActivity.this)
-                            .asBitmap()
+                            .with(getApplicationContext())
                             .load(userDetailsModel1.getPhotoUrl())
-                            .into(new CustomTarget<Bitmap>() {
-                                @Override
-                                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                                    profileImage.setImageBitmap(resource);
-                                    try {
-                                        Log.d(TAG, "onResourceReady: ");
-                                        FileOutputStream fileOutputStream = FeedActivity.this.openFileOutput("profile.png", Context.MODE_PRIVATE);
-                                        resource.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream);
-                                        fileOutputStream.close();
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-
-                                @Override
-                                public void onLoadCleared(@Nullable Drawable placeholder) {
-
-                                }
-                            });
+                            .apply(options)
+                            .apply(RequestOptions.skipMemoryCacheOf(true))
+                            .apply(RequestOptions.diskCacheStrategyOf(DiskCacheStrategy.NONE))
+                            .into(profileImage);
                 }
 
                 @Override
@@ -388,12 +333,14 @@ public class FeedActivity extends AppCompatActivity implements ImageChooser.OnFr
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onRestart() {
+        super.onRestart();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    protected void onStop() {
+        super.onStop();
+        handleSignInResult(result);
+        loadPost();
     }
 }

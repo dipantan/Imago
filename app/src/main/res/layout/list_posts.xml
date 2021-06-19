@@ -55,8 +55,6 @@
             android:id="@+id/expand_text_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            expandableTextView:expandDrawable="@drawable/more"
-            expandableTextView:collapseDrawable="@drawable/less"
             expandableTextView:animDuration="200"
             expandableTextView:maxCollapsedLines="4">
 

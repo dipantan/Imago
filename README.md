@@ -14,9 +14,9 @@ A social media app using firebase
   
 ## Screenshots
 
-![App Screenshot](https://raw.githubusercontent.com/dipantan/Imago/601a500116ee166bde7a6082bdc7921486dd2ae6/1.jpg)
-![App Screenshot](https://raw.githubusercontent.com/dipantan/Imago/601a500116ee166bde7a6082bdc7921486dd2ae6/2.jpg)
-![App Screenshot](https://raw.githubusercontent.com/dipantan/Imago/601a500116ee166bde7a6082bdc7921486dd2ae6/3.jpg)
+![App Screenshot](1.jpg)
+![App Screenshot](2.jpg)
+![App Screenshot](3.jpg)
 
   
 ## License
